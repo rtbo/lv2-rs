@@ -1,0 +1,11 @@
+[package]
+name = "amp"
+version = "0.1.0"
+authors = ["Remi Thebault <remi.thebault@gmail.com>"]
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+libc = "0.2"
+lv2 = { path = "../.." }
