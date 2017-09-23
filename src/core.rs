@@ -3,6 +3,12 @@
 
 //use ffi::core::*;
 
+pub struct PluginInstance<'h, T>
+    where T : Plugin<'h>
+{
+    pub ports_raw: <T as Ported<'h>>::PortsRaw,
+    pub state: T,
+}
 
 pub trait Plugin<'h> where Self : Ported<'h>
 {

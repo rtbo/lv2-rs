@@ -89,12 +89,6 @@ impl<'h> lv2::Plugin<'h> for Amp
     }
 }
 
-
-struct AmpInstance {
-    ports_raw: AmpPortsRaw,
-    state: Amp,
-}
-
 extern fn instantiate (_descriptor: *const LV2_Descriptor,
                        sample_rate: f64,
                        bundle_path: *const c_char,
@@ -105,7 +99,7 @@ extern fn instantiate (_descriptor: *const LV2_Descriptor,
     let bundle_path = unsafe { CStr::from_ptr(bundle_path).to_str().unwrap() };
 
     let instance = Box::new(
-        AmpInstance {
+        lv2::PluginInstance::<Amp> {
             ports_raw: amp_ports,
             state: Amp::new(sample_rate, bundle_path),
         }
@@ -117,7 +111,7 @@ extern fn connect_port (instance: LV2_Handle,
                         port: u32,
                         data_location: *mut c_void)
 {
-    let instance: &mut AmpInstance = unsafe { transmute(instance) };
+    let instance: &mut lv2::PluginInstance<Amp> = unsafe { transmute(instance) };
     <Amp as lv2::Ported>::connect_port(port as usize,
                                        data_location as *mut _,
                                        &mut instance.ports_raw);
@@ -125,17 +119,17 @@ extern fn connect_port (instance: LV2_Handle,
 
 extern fn run (instance: LV2_Handle, sample_count: u32)
 {
-    let amp: &mut AmpInstance = unsafe { transmute(instance) };
+    let instance: &mut lv2::PluginInstance<Amp> = unsafe { transmute(instance) };
 
     let sample_count = sample_count as usize;
 
-    let mut amp_ports = <Amp as lv2::Ported>::convert_ports(amp.ports_raw, sample_count);
-    amp.state.run(&mut amp_ports, sample_count);
+    let mut amp_ports = <Amp as lv2::Ported>::convert_ports(instance.ports_raw, sample_count);
+    instance.state.run(&mut amp_ports, sample_count);
 }
 
 extern fn cleanup(instance: LV2_Handle)
 {
-    unsafe { let _ = Box::from_raw(instance as *mut AmpInstance); }
+    unsafe { let _ = Box::from_raw(instance as *mut lv2::PluginInstance<Amp>); }
 }
 
 static DESCRIPTOR: LV2_Descriptor = LV2_Descriptor {
