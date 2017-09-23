@@ -2,14 +2,8 @@
 extern crate libc;
 extern crate lv2;
 
-use libc::{c_char, c_void};
+use lv2::ffi::LV2_Descriptor;
 
-use lv2::ffi::*;
-use lv2::Plugin;
-
-use std::boxed::Box;
-use std::ffi::{CStr};
-use std::mem::transmute;
 use std::ptr;
 use std::slice;
 use std::f32;
@@ -81,7 +75,7 @@ impl<'h> lv2::Plugin<'h> for Amp
         Amp { }
     }
 
-    fn run(&mut self, ports: &'h mut AmpPorts, sample_count: usize) {
+    fn run(&mut self, ports: &mut AmpPorts, sample_count: usize) {
         let gain = db_to_coef(ports.gain);
         for sample in 0 .. sample_count {
             ports.output[sample] = ports.input[sample] * gain;
@@ -89,57 +83,14 @@ impl<'h> lv2::Plugin<'h> for Amp
     }
 }
 
-extern fn instantiate (_descriptor: *const LV2_Descriptor,
-                       sample_rate: f64,
-                       bundle_path: *const c_char,
-                       _features: *const LV2_Feature) -> LV2_Handle
-{
-    let amp_ports = <Amp as lv2::Ported>::new_ports_raw();
-
-    let bundle_path = unsafe { CStr::from_ptr(bundle_path).to_str().unwrap() };
-
-    let instance = Box::new(
-        lv2::PluginInstance::<Amp> {
-            ports_raw: amp_ports,
-            state: Amp::new(sample_rate, bundle_path),
-        }
-    );
-    Box::into_raw(instance) as LV2_Handle
-}
-
-extern fn connect_port (instance: LV2_Handle,
-                        port: u32,
-                        data_location: *mut c_void)
-{
-    let instance: &mut lv2::PluginInstance<Amp> = unsafe { transmute(instance) };
-    <Amp as lv2::Ported>::connect_port(port as usize,
-                                       data_location as *mut _,
-                                       &mut instance.ports_raw);
-}
-
-extern fn run (instance: LV2_Handle, sample_count: u32)
-{
-    let instance: &mut lv2::PluginInstance<Amp> = unsafe { transmute(instance) };
-
-    let sample_count = sample_count as usize;
-
-    let mut amp_ports = <Amp as lv2::Ported>::convert_ports(instance.ports_raw, sample_count);
-    instance.state.run(&mut amp_ports, sample_count);
-}
-
-extern fn cleanup(instance: LV2_Handle)
-{
-    unsafe { let _ = Box::from_raw(instance as *mut lv2::PluginInstance<Amp>); }
-}
-
 static DESCRIPTOR: LV2_Descriptor = LV2_Descriptor {
     URI: b"https://github.com/rtbo/lv2-rs/plugins/eg-amp\0" as *const u8 as _,
-    instantiate: Some(instantiate),
-    connect_port: Some(connect_port),
+    instantiate: Some(lv2::instantiate::<Amp>),
+    connect_port: Some(lv2::connect_port::<Amp>),
     activate: None,
-    run: Some(run),
+    run: Some(lv2::run::<Amp>),
     deactivate: None,
-    cleanup: Some(cleanup),
+    cleanup: Some(lv2::cleanup::<Amp>),
     extension_data: None,
 };
 
