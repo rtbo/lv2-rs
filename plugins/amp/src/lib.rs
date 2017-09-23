@@ -43,9 +43,18 @@ fn db_to_coef(db: f32) -> f32
 
 struct Amp { }
 
-unsafe impl<'h> lv2::Ported<'h> for Amp {
+unsafe impl<'h> lv2::Ported<'h> for Amp
+{
     type Ports = AmpPorts<'h>;
     type PortsRaw = AmpPortsRaw;
+
+    fn new_ports_raw() -> Self::PortsRaw {
+        AmpPortsRaw {
+            gain: ptr::null(),
+            input: ptr::null(),
+            output: ptr::null_mut(),
+        }
+    }
 
     fn connect_port(port: usize, data: *mut (), ports_raw: &mut Self::PortsRaw) {
         match port {
@@ -91,11 +100,7 @@ extern fn instantiate (_descriptor: *const LV2_Descriptor,
                        bundle_path: *const c_char,
                        _features: *const LV2_Feature) -> LV2_Handle
 {
-    let amp_ports = AmpPortsRaw {
-        gain: ptr::null(),
-        input: ptr::null(),
-        output: ptr::null_mut(),
-    };
+    let amp_ports = <Amp as lv2::Ported>::new_ports_raw();
 
     let bundle_path = unsafe { CStr::from_ptr(bundle_path).to_str().unwrap() };
 
