@@ -15,6 +15,7 @@ pub trait Plugin<'h> where Self : Ported<'h>
 pub unsafe trait Ported<'h> {
     type Ports;
     type PortsRaw;
+    fn connect_port(port: usize, data: *mut (), ports_raw: &mut Self::PortsRaw);
     fn convert_ports(ports_raw: Self::PortsRaw, sample_count: usize) -> Self::Ports;
 }
 

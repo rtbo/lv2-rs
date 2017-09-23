@@ -14,9 +14,9 @@ use std::ptr;
 use std::slice;
 use std::f32;
 
-const AMP_GAIN: u32 = 0;
-const AMP_INPUT: u32 = 1;
-const AMP_OUTPUT: u32 = 2;
+const AMP_GAIN: usize = 0;
+const AMP_INPUT: usize = 1;
+const AMP_OUTPUT: usize = 2;
 
 struct AmpPorts<'h> {
     gain: f32,
@@ -46,6 +46,17 @@ struct Amp { }
 unsafe impl<'h> lv2::Ported<'h> for Amp {
     type Ports = AmpPorts<'h>;
     type PortsRaw = AmpPortsRaw;
+
+    fn connect_port(port: usize, data: *mut (), ports_raw: &mut Self::PortsRaw) {
+        match port {
+            AMP_GAIN => { ports_raw.gain = data as *const f32; },
+            AMP_INPUT => { ports_raw.input = data as *const f32; },
+            AMP_OUTPUT => { ports_raw.output = data as *mut f32; },
+            _ => {},
+        }
+
+    }
+
     fn convert_ports(ports_raw: Self::PortsRaw, sample_count: usize) -> Self::Ports {
         AmpPorts {
             gain: unsafe { *ports_raw.gain },
@@ -102,13 +113,9 @@ extern fn connect_port (instance: LV2_Handle,
                         data_location: *mut c_void)
 {
     let instance: &mut AmpInstance = unsafe { transmute(instance) };
-
-    match port {
-        AMP_GAIN => { instance.ports_raw.gain = data_location as *const f32; },
-        AMP_INPUT => { instance.ports_raw.input = data_location as *const f32; },
-        AMP_OUTPUT => { instance.ports_raw.output = data_location as *mut f32; },
-        _ => {},
-    }
+    <Amp as lv2::Ported>::connect_port(port as usize,
+                                       data_location as *mut _,
+                                       &mut instance.ports_raw);
 }
 
 extern fn run (instance: LV2_Handle, sample_count: u32)
