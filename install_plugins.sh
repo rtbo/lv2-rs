@@ -11,5 +11,4 @@ function install_plugin {
         cp -v plugins/$1/target/$CONFIG/lib$1.so $LV2_DIR/$1.lv2/$1.so
 }
 
-# install_plugin amp_ffi
 install_plugin amp
