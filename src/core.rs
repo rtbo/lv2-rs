@@ -204,7 +204,10 @@ macro_rules! lv2_descriptor {
                         &$DESC
                     },
                 )+
-                _ => { ptr::null() }
+                _ => {
+                    use std;
+                    std::ptr::null()
+                }
             }
         }
 

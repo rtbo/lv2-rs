@@ -4,7 +4,6 @@ extern crate libc;
 extern crate lv2;
 
 use std::f32;
-use std::ptr;
 
 fn db_to_coef(db: f32) -> f32
 {
