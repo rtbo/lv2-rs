@@ -3,8 +3,6 @@ extern crate libc;
 #[macro_use]
 extern crate lv2;
 
-use lv2::ffi::LV2_Descriptor;
-
 use std::ptr;
 use std::slice;
 use std::f32;

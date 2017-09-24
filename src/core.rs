@@ -98,14 +98,14 @@ pub extern "C" fn cleanup<'h, T: Plugin<'h>>(instance: LV2_Handle) {
 macro_rules! lv2_descriptor {
 
     (@desc $DESC:ident { $uri:expr => $Plug:ty }) => {
-        static mut $DESC: LV2_Descriptor = LV2_Descriptor {
+        static mut $DESC: $crate::ffi::LV2_Descriptor = $crate::ffi::LV2_Descriptor {
             URI: b"\0" as *const u8 as _,
-            instantiate: Some(lv2::instantiate::<$Plug>),
-            connect_port: Some(lv2::connect_port::<$Plug>),
-            activate: Some(lv2::activate::<$Plug>),
-            run: Some(lv2::run::<$Plug>),
-            deactivate: Some(lv2::deactivate::<$Plug>),
-            cleanup: Some(lv2::cleanup::<$Plug>),
+            instantiate: Some($crate::instantiate::<$Plug>),
+            connect_port: Some($crate::connect_port::<$Plug>),
+            activate: Some($crate::activate::<$Plug>),
+            run: Some($crate::run::<$Plug>),
+            deactivate: Some($crate::deactivate::<$Plug>),
+            cleanup: Some($crate::cleanup::<$Plug>),
             extension_data: None,
         };
     };
@@ -118,7 +118,7 @@ macro_rules! lv2_descriptor {
         )+
 
         #[no_mangle]
-        pub unsafe extern "C" fn lv2_descriptor (index: u32) -> *const LV2_Descriptor
+        pub unsafe extern "C" fn lv2_descriptor (index: u32) -> *const $crate::ffi::LV2_Descriptor
         {
             match index {
                 $(
