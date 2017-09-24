@@ -25,14 +25,6 @@ where
     fn deactivate(&mut self) {}
 }
 
-pub unsafe trait Ported<'h> {
-    type Ports;
-    type PortsRaw;
-    fn new_ports_raw() -> Self::PortsRaw;
-    fn connect_port(port: usize, data: *mut (), ports_raw: &mut Self::PortsRaw);
-    fn convert_ports(ports_raw: Self::PortsRaw, sample_count: usize) -> Self::Ports;
-}
-
 
 pub extern "C" fn instantiate<'h, T: Plugin<'h>>(
     _descriptor: *const LV2_Descriptor,
@@ -94,6 +86,91 @@ pub extern "C" fn cleanup<'h, T: Plugin<'h>>(instance: LV2_Handle) {
 }
 
 
+pub unsafe trait Ported<'h> {
+    type Ports;
+    type PortsRaw;
+    fn new_ports_raw() -> Self::PortsRaw;
+    fn connect_port(port: usize, data: *mut (), ports_raw: &mut Self::PortsRaw);
+    fn convert_ports(ports_raw: Self::PortsRaw, sample_count: usize) -> Self::Ports;
+}
+
+
+pub mod meta {
+
+    use std::ptr;
+    use std::mem;
+    use std::slice;
+
+    pub unsafe trait Port<'h> {
+        type FieldRaw;
+        type Field;
+        fn new_raw() -> Self::FieldRaw;
+        fn cast_raw(data: *mut ()) -> Self::FieldRaw;
+        fn convert(raw: Self::FieldRaw, sample_count: usize) -> Self::Field;
+    }
+
+    pub enum InputControl {}
+    unsafe impl<'h> Port<'h> for InputControl {
+        type FieldRaw = *const f32;
+        type Field = &'h f32;
+        fn new_raw() -> Self::FieldRaw {
+            ptr::null()
+        }
+        fn cast_raw(data: *mut ()) -> Self::FieldRaw {
+            data as Self::FieldRaw
+        }
+        fn convert(raw: Self::FieldRaw, _: usize) -> Self::Field {
+            unsafe { mem::transmute(raw) }
+        }
+    }
+
+    pub enum OutputControl {}
+    unsafe impl<'h> Port<'h> for OutputControl {
+        type FieldRaw = *mut f32;
+        type Field = &'h mut f32;
+        fn new_raw() -> Self::FieldRaw {
+            ptr::null_mut()
+        }
+        fn cast_raw(data: *mut ()) -> Self::FieldRaw {
+            data as Self::FieldRaw
+        }
+        fn convert(raw: Self::FieldRaw, _: usize) -> Self::Field {
+            unsafe { mem::transmute(raw) }
+        }
+    }
+
+    pub enum InputAudio {}
+    unsafe impl<'h> Port<'h> for InputAudio {
+        type FieldRaw = *const f32;
+        type Field = &'h [f32];
+        fn new_raw() -> Self::FieldRaw {
+            ptr::null()
+        }
+        fn cast_raw(data: *mut ()) -> Self::FieldRaw {
+            data as Self::FieldRaw
+        }
+        fn convert(raw: Self::FieldRaw, sample_count: usize) -> Self::Field {
+            unsafe { slice::from_raw_parts(raw, sample_count) }
+        }
+    }
+
+    pub enum OutputAudio {}
+    unsafe impl<'h> Port<'h> for OutputAudio {
+        type FieldRaw = *mut f32;
+        type Field = &'h mut [f32];
+        fn new_raw() -> Self::FieldRaw {
+            ptr::null_mut()
+        }
+        fn cast_raw(data: *mut ()) -> Self::FieldRaw {
+            data as Self::FieldRaw
+        }
+        fn convert(raw: Self::FieldRaw, sample_count: usize) -> Self::Field {
+            unsafe { slice::from_raw_parts_mut(raw, sample_count) }
+        }
+    }
+
+}
+
 #[macro_export]
 macro_rules! lv2_descriptor {
 
@@ -135,31 +212,51 @@ macro_rules! lv2_descriptor {
 
 }
 
+#[macro_export]
+macro_rules! lv2_ports {
+    ( $Plug:ty => { $( $idx:expr => $name:ident : $Meta:ty ),+ } ) => {
 
-pub mod meta {
+        #[derive(Copy, Clone)]
+        struct PortsRaw<'h> {
+            $(
+                $name: <$Meta as $crate::meta::Port<'h>>::FieldRaw
+            ),+
+        }
 
-    pub trait Port {
-        type Field;
+        struct Ports<'h> {
+            $(
+                $name: <$Meta as $crate::meta::Port<'h>>::Field
+            ),+
+        }
+
+        unsafe impl<'h> $crate::Ported<'h> for $Plug {
+            type PortsRaw = PortsRaw<'h>;
+            type Ports = Ports<'h>;
+            fn new_ports_raw() -> Self::PortsRaw {
+                Self::PortsRaw {
+                    $(
+                        $name: <$Meta as $crate::meta::Port<'h>>::new_raw()
+                    ),+
+                }
+            }
+
+            fn connect_port(port: usize, data: *mut (), ports_raw: &mut Self::PortsRaw) {
+                match port {
+                    $(
+                        $idx => { ports_raw.$name = <$Meta as $crate::meta::Port<'h>>::cast_raw(data); }
+                    ),+
+                    _ => {},
+                }
+            }
+
+            fn convert_ports(ports_raw: Self::PortsRaw, sample_count: usize) -> Self::Ports {
+                Self::Ports {
+                    $(
+                        $name: <$Meta as $crate::meta::Port<'h>>::convert(ports_raw.$name, sample_count)
+                    ),+
+                }
+            }
+        }
+
     }
-
-    pub enum InputControl {}
-    impl Port for InputControl {
-        type Field = *const f32;
-    }
-
-    pub enum OutputControl {}
-    impl Port for OutputControl {
-        type Field = *mut f32;
-    }
-
-    pub enum InputAudio {}
-    impl Port for InputAudio {
-        type Field = *const f32;
-    }
-
-    pub enum OutputAudio {}
-    impl Port for OutputAudio {
-        type Field = *mut f32;
-    }
-
 }
