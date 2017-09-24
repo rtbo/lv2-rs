@@ -89,6 +89,43 @@ pub extern fn cleanup<'h, T : Plugin<'h>> (instance: LV2_Handle)
     unsafe { let _ = Box::from_raw(instance as *mut PluginInstance<T>); }
 }
 
+
+#[macro_export]
+macro_rules! lv2_descriptor {
+
+    (@desc $DESC:ident { $uri:expr => $Plug:ty }) => {
+        static mut $DESC: LV2_Descriptor = LV2_Descriptor {
+            URI: b"\0" as *const u8 as _,
+            instantiate: Some(lv2::instantiate::<$Plug>),
+            connect_port: Some(lv2::connect_port::<$Plug>),
+            activate: Some(lv2::activate::<$Plug>),
+            run: Some(lv2::run::<$Plug>),
+            deactivate: Some(lv2::deactivate::<$Plug>),
+            cleanup: Some(lv2::cleanup::<$Plug>),
+            extension_data: None,
+        };
+    };
+
+    ( $DESC:ident { $uri:expr => $Plug:ty } ) => {
+
+        lv2_descriptor!{ @desc $DESC { $uri => $Plug } }
+
+        #[no_mangle]
+        pub unsafe extern "C" fn lv2_descriptor (index: u32) -> *const LV2_Descriptor
+        {
+            match index {
+                0 => {
+                    $DESC.URI = concat!($uri, "\0").as_ptr() as _;
+                    &$DESC
+                },
+                _ => { ptr::null() }
+            }
+        }
+
+    };
+}
+
+
 pub mod meta {
 
     pub trait Port {

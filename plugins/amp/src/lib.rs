@@ -1,5 +1,6 @@
 
 extern crate libc;
+#[macro_use]
 extern crate lv2;
 
 use lv2::ffi::LV2_Descriptor;
@@ -83,23 +84,28 @@ impl<'h> lv2::Plugin<'h> for Amp
     }
 }
 
-static DESCRIPTOR: LV2_Descriptor = LV2_Descriptor {
-    URI: b"https://github.com/rtbo/lv2-rs/plugins/eg-amp\0" as *const u8 as _,
-    instantiate: Some(lv2::instantiate::<Amp>),
-    connect_port: Some(lv2::connect_port::<Amp>),
-    activate: Some(lv2::activate::<Amp>),
-    run: Some(lv2::run::<Amp>),
-    deactivate: Some(lv2::deactivate::<Amp>),
-    cleanup: Some(lv2::cleanup::<Amp>),
-    extension_data: None,
-};
+
+lv2_descriptor! (
+    DESCRIPTOR1 { "https://github.com/rtbo/lv2-rs/plugins/eg-amp" => Amp }
+);
 
 
-#[no_mangle]
-pub extern "C" fn lv2_descriptor(index: u32) -> *const LV2_Descriptor
-{
-    match index {
-        0 => { &DESCRIPTOR },
-        _ => { ptr::null() }
-    }
-}
+// static DESCRIPTOR: LV2_Descriptor = LV2_Descriptor {
+//     URI: b"https://github.com/rtbo/lv2-rs/plugins/eg-amp\0" as *const u8 as _,
+//     instantiate: Some(lv2::instantiate::<Amp>),
+//     connect_port: Some(lv2::connect_port::<Amp>),
+//     activate: Some(lv2::activate::<Amp>),
+//     run: Some(lv2::run::<Amp>),
+//     deactivate: Some(lv2::deactivate::<Amp>),
+//     cleanup: Some(lv2::cleanup::<Amp>),
+//     extension_data: None,
+// };
+
+// #[no_mangle]
+// pub extern "C" fn lv2_descriptor(index: u32) -> *const LV2_Descriptor
+// {
+//     match index {
+//         0 => { &DESCRIPTOR },
+//         _ => { ptr::null() }
+//     }
+// }
