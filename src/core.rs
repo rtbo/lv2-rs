@@ -50,6 +50,12 @@ pub extern fn instantiate<'h, T : Plugin<'h>> (_descriptor: *const LV2_Descripto
     Box::into_raw(instance) as LV2_Handle
 }
 
+pub extern fn activate<'h, T : Plugin<'h>> (instance: LV2_Handle)
+{
+    let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
+    instance.state.activate();
+}
+
 pub extern fn connect_port<'h, T : Plugin<'h>> (instance: LV2_Handle,
                         port: u32,
                         data_location: *mut c_void)
@@ -72,6 +78,11 @@ pub extern fn run<'h, T : 'h + Plugin<'h>> (instance: LV2_Handle, sample_count: 
     instance.state.run(&mut ports, sample_count);
 }
 
+pub extern fn deactivate<'h, T : Plugin<'h>> (instance: LV2_Handle)
+{
+    let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
+    instance.state.deactivate();
+}
 
 pub extern fn cleanup<'h, T : Plugin<'h>> (instance: LV2_Handle)
 {

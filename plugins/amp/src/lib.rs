@@ -87,9 +87,9 @@ static DESCRIPTOR: LV2_Descriptor = LV2_Descriptor {
     URI: b"https://github.com/rtbo/lv2-rs/plugins/eg-amp\0" as *const u8 as _,
     instantiate: Some(lv2::instantiate::<Amp>),
     connect_port: Some(lv2::connect_port::<Amp>),
-    activate: None,
+    activate: Some(lv2::activate::<Amp>),
     run: Some(lv2::run::<Amp>),
-    deactivate: None,
+    deactivate: Some(lv2::deactivate::<Amp>),
     cleanup: Some(lv2::cleanup::<Amp>),
     extension_data: None,
 };
