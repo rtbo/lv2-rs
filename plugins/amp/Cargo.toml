@@ -7,5 +7,4 @@ authors = ["Remi Thebault <remi.thebault@gmail.com>"]
 crate-type = ["dylib"]
 
 [dependencies]
-libc = "0.2"
 lv2 = { path = "../.." }
