@@ -217,15 +217,15 @@ macro_rules! lv2_ports {
     ( $Plug:ty => { $( $idx:expr => $name:ident : $Meta:ty ),+ } ) => {
 
         #[derive(Copy, Clone)]
-        struct PortsRaw<'h> {
+        pub struct PortsRaw<'h> {
             $(
-                $name: <$Meta as $crate::meta::Port<'h>>::FieldRaw
+                pub $name: <$Meta as $crate::meta::Port<'h>>::FieldRaw
             ),+
         }
 
-        struct Ports<'h> {
+        pub struct Ports<'h> {
             $(
-                $name: <$Meta as $crate::meta::Port<'h>>::Field
+                pub $name: <$Meta as $crate::meta::Port<'h>>::Field
             ),+
         }
 

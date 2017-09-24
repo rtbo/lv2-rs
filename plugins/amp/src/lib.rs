@@ -16,11 +16,15 @@ fn db_to_coef(db: f32) -> f32
     }
 }
 
-lv2_ports!(Amp => {
-    0 => gain: lv2::meta::InputControl,
-    1 => input: lv2::meta::InputAudio,
-    2 => output: lv2::meta::OutputAudio
-});
+mod ports {
+    use lv2;
+
+    lv2_ports!(super::Amp => {
+        0 => gain: lv2::meta::InputControl,
+        1 => input: lv2::meta::InputAudio,
+        2 => output: lv2::meta::OutputAudio
+    });
+}
 
 struct Amp { }
 
