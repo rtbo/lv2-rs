@@ -85,27 +85,6 @@ impl<'h> lv2::Plugin<'h> for Amp
 }
 
 
-lv2_descriptor! (
-    DESCRIPTOR1 { "https://github.com/rtbo/lv2-rs/plugins/eg-amp" => Amp }
-);
-
-
-// static DESCRIPTOR: LV2_Descriptor = LV2_Descriptor {
-//     URI: b"https://github.com/rtbo/lv2-rs/plugins/eg-amp\0" as *const u8 as _,
-//     instantiate: Some(lv2::instantiate::<Amp>),
-//     connect_port: Some(lv2::connect_port::<Amp>),
-//     activate: Some(lv2::activate::<Amp>),
-//     run: Some(lv2::run::<Amp>),
-//     deactivate: Some(lv2::deactivate::<Amp>),
-//     cleanup: Some(lv2::cleanup::<Amp>),
-//     extension_data: None,
-// };
-
-// #[no_mangle]
-// pub extern "C" fn lv2_descriptor(index: u32) -> *const LV2_Descriptor
-// {
-//     match index {
-//         0 => { &DESCRIPTOR },
-//         _ => { ptr::null() }
-//     }
-// }
+lv2_descriptor! {
+    0 => DESCRIPTOR { "https://github.com/rtbo/lv2-rs/plugins/eg-amp" => Amp }
+}

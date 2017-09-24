@@ -8,15 +8,18 @@ use std::mem::transmute;
 
 
 pub struct PluginInstance<'h, T>
-    where T : Plugin<'h>
+where
+    T: Plugin<'h>,
 {
     pub ports_raw: <T as Ported<'h>>::PortsRaw,
     pub state: T,
 }
 
-pub trait Plugin<'h> where Self : Ported<'h>
+pub trait Plugin<'h>
+where
+    Self: Ported<'h>,
 {
-    fn new (sample_rate: f64, bundle_path: &str) -> Self;
+    fn new(sample_rate: f64, bundle_path: &str) -> Self;
     fn activate(&mut self) {}
     fn run(&mut self, ports: &mut Self::Ports, sample_count: usize);
     fn deactivate(&mut self) {}
@@ -31,44 +34,45 @@ pub unsafe trait Ported<'h> {
 }
 
 
-pub extern fn instantiate<'h, T : Plugin<'h>> (_descriptor: *const LV2_Descriptor,
-                                           sample_rate: f64,
-                                           bundle_path: *const c_char,
-                                           _features: *const LV2_Feature)
-        -> LV2_Handle
-{
+pub extern "C" fn instantiate<'h, T: Plugin<'h>>(
+    _descriptor: *const LV2_Descriptor,
+    sample_rate: f64,
+    bundle_path: *const c_char,
+    _features: *const LV2_Feature,
+) -> LV2_Handle {
     let amp_ports = <T as Ported>::new_ports_raw();
 
     let bundle_path = unsafe { CStr::from_ptr(bundle_path).to_str().unwrap() };
 
-    let instance = Box::new(
-        PluginInstance::<T> {
-            ports_raw: amp_ports,
-            state: T::new(sample_rate, bundle_path),
-        }
-    );
+    let instance = Box::new(PluginInstance::<T> {
+        ports_raw: amp_ports,
+        state: T::new(sample_rate, bundle_path),
+    });
     Box::into_raw(instance) as LV2_Handle
 }
 
-pub extern fn activate<'h, T : Plugin<'h>> (instance: LV2_Handle)
-{
+pub extern "C" fn activate<'h, T: Plugin<'h>>(instance: LV2_Handle) {
     let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
     instance.state.activate();
 }
 
-pub extern fn connect_port<'h, T : Plugin<'h>> (instance: LV2_Handle,
-                        port: u32,
-                        data_location: *mut c_void)
-{
+pub extern "C" fn connect_port<'h, T: Plugin<'h>>(
+    instance: LV2_Handle,
+    port: u32,
+    data_location: *mut c_void,
+) {
     let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
-    <T as Ported>::connect_port(port as usize,
-                                       data_location as *mut _,
-                                       &mut instance.ports_raw);
+    <T as Ported>::connect_port(
+        port as usize,
+        data_location as *mut _,
+        &mut instance.ports_raw,
+    );
 }
 
 
-pub extern fn run<'h, T : 'h + Plugin<'h>> (instance: LV2_Handle, sample_count: u32)
-        where T::PortsRaw : Copy
+pub extern "C" fn run<'h, T: 'h + Plugin<'h>>(instance: LV2_Handle, sample_count: u32)
+where
+    T::PortsRaw: Copy,
 {
     let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
 
@@ -78,15 +82,15 @@ pub extern fn run<'h, T : 'h + Plugin<'h>> (instance: LV2_Handle, sample_count: 
     instance.state.run(&mut ports, sample_count);
 }
 
-pub extern fn deactivate<'h, T : Plugin<'h>> (instance: LV2_Handle)
-{
+pub extern "C" fn deactivate<'h, T: Plugin<'h>>(instance: LV2_Handle) {
     let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
     instance.state.deactivate();
 }
 
-pub extern fn cleanup<'h, T : Plugin<'h>> (instance: LV2_Handle)
-{
-    unsafe { let _ = Box::from_raw(instance as *mut PluginInstance<T>); }
+pub extern "C" fn cleanup<'h, T: Plugin<'h>>(instance: LV2_Handle) {
+    unsafe {
+        let _ = Box::from_raw(instance as *mut PluginInstance<T>);
+    }
 }
 
 
@@ -106,23 +110,29 @@ macro_rules! lv2_descriptor {
         };
     };
 
-    ( $DESC:ident { $uri:expr => $Plug:ty } ) => {
 
-        lv2_descriptor!{ @desc $DESC { $uri => $Plug } }
+    ( $( $idx:expr => $DESC:ident { $uri:expr => $Plug:ty } ),+ ) => {
+
+        $(
+            lv2_descriptor!{ @desc $DESC { $uri => $Plug } }
+        )+
 
         #[no_mangle]
         pub unsafe extern "C" fn lv2_descriptor (index: u32) -> *const LV2_Descriptor
         {
             match index {
-                0 => {
-                    $DESC.URI = concat!($uri, "\0").as_ptr() as _;
-                    &$DESC
-                },
+                $(
+                    $idx => {
+                        $DESC.URI = concat!($uri, "\0").as_ptr() as _;
+                        &$DESC
+                    },
+                )+
                 _ => { ptr::null() }
             }
         }
 
     };
+
 }
 
 
