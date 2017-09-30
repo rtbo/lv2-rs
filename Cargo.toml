@@ -5,3 +5,7 @@ authors = ["Remi Thebault <remi.thebault@gmail.com>"]
 
 [dependencies]
 libc = "0.2"
+lv2-derive = { path = "lv2-derive", optional = true }
+
+[features]
+atom = ["lv2-derive"]

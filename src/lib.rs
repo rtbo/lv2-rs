@@ -1,6 +1,11 @@
 
 extern crate libc;
+#[cfg(feature = "atom")]
+#[macro_use]
+extern crate lv2_derive;
 
+#[cfg(feature = "atom")]
+pub mod atom;
 pub mod core;
 pub mod midi;
 pub mod urid;

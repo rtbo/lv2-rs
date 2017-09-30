@@ -1,0 +1,11 @@
+[package]
+name = "lv2-derive"
+version = "0.1.0"
+authors = ["Remi Thebault <remi.thebault@gmail.com>"]
+
+[lib]
+crate-type = ["proc-macro"]
+
+[dependencies]
+syn = "0.11"
+quote = "0.3"
