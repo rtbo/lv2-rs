@@ -1,0 +1,10 @@
+[package]
+name = "sine_synth"
+version = "0.1.0"
+authors = ["Remi Thebault <remi.thebault@gmail.com>"]
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+lv2 = { path = "../..", features = ["atom"] }
