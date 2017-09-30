@@ -4,14 +4,17 @@ use ffi::core::*;
 use libc::{c_char, c_void};
 
 use std::ffi::CStr;
-use std::mem::transmute;
+use std::mem;
+use std::marker;
+use std::ptr;
 
 
 pub trait Plugin<'h>
 where
     Self: Ported<'h>,
+    Self: marker::Sized,
 {
-    fn new(sample_rate: f64, bundle_path: &str) -> Self;
+    fn new(sample_rate: f64, bundle_path: &str, features: FeatureList<'h>) -> Option<Self>;
     fn activate(&mut self) {}
     fn run(&mut self, ports: &mut Self::Ports, sample_count: usize);
     fn deactivate(&mut self) {}
@@ -26,26 +29,79 @@ where
     pub state: T,
 }
 
+pub trait Feature<'h>
+{
+    fn uri() -> &'static str;
+    unsafe fn from_raw(raw: RawFeature<'h>) -> Self;
+}
+
+pub struct RawFeature<'h> {
+    pub raw: *const LV2_Feature,
+    marker: marker::PhantomData<&'h ()>,
+}
+
+impl<'h> RawFeature<'h> {
+    pub fn uri(&self) -> &'h str {
+        unsafe {
+            CStr::from_ptr((*self.raw).URI).to_str().unwrap()
+        }
+    }
+    pub fn data(&self) -> &'h () {
+        unsafe {
+            mem::transmute((*self.raw).data)
+        }
+    }
+}
+
+pub struct FeatureList<'h>
+{
+    raw: *const *const LV2_Feature,
+    marker: marker::PhantomData<&'h ()>,
+}
+
+impl<'h> Iterator for FeatureList<'h>
+{
+    type Item = RawFeature<'h>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let raw = unsafe { *self.raw };
+
+        if raw.is_null() {
+            None
+        }
+        else {
+            unsafe {
+                self.raw = self.raw.offset(1);
+            }
+            Some(RawFeature{ raw: raw, marker: marker::PhantomData })
+        }
+    }
+}
+
 
 pub extern "C" fn instantiate<'h, T: Plugin<'h>>(
     _descriptor: *const LV2_Descriptor,
     sample_rate: f64,
     bundle_path: *const c_char,
-    _features: *const LV2_Feature,
+    features: *const *const LV2_Feature,
 ) -> LV2_Handle {
-    let amp_ports = <T as Ported>::new_ports_raw();
 
     let bundle_path = unsafe { CStr::from_ptr(bundle_path).to_str().unwrap() };
-
-    let instance = Box::new(PluginInstance::<T> {
-        ports_raw: amp_ports,
-        state: T::new(sample_rate, bundle_path),
-    });
-    Box::into_raw(instance) as LV2_Handle
+    if let Some(state) = T::new(sample_rate, bundle_path,
+                                FeatureList{raw: features, marker: marker::PhantomData}) {
+        let ports = <T as Ported>::new_ports_raw();
+        let instance = Box::new(PluginInstance::<T> {
+            ports_raw: ports,
+            state: state
+        });
+        Box::into_raw(instance) as LV2_Handle
+    }
+    else {
+        ptr::null_mut()
+    }
 }
 
 pub extern "C" fn activate<'h, T: Plugin<'h>>(instance: LV2_Handle) {
-    let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
+    let instance: &mut PluginInstance<T> = unsafe { mem::transmute(instance) };
     instance.state.activate();
 }
 
@@ -54,7 +110,7 @@ pub extern "C" fn connect_port<'h, T: Plugin<'h>>(
     port: u32,
     data_location: *mut c_void,
 ) {
-    let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
+    let instance: &mut PluginInstance<T> = unsafe { mem::transmute(instance) };
     <T as Ported>::connect_port(
         port as usize,
         data_location as *mut _,
@@ -67,7 +123,7 @@ pub extern "C" fn run<'h, T: 'h + Plugin<'h>>(instance: LV2_Handle, sample_count
 where
     T::PortsRaw: Copy,
 {
-    let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
+    let instance: &mut PluginInstance<T> = unsafe { mem::transmute(instance) };
 
     let sample_count = sample_count as usize;
 
@@ -76,7 +132,7 @@ where
 }
 
 pub extern "C" fn deactivate<'h, T: Plugin<'h>>(instance: LV2_Handle) {
-    let instance: &mut PluginInstance<T> = unsafe { transmute(instance) };
+    let instance: &mut PluginInstance<T> = unsafe { mem::transmute(instance) };
     instance.state.deactivate();
 }
 

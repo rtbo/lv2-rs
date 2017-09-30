@@ -25,8 +25,8 @@ mod ports {
 struct Amp {}
 
 impl<'h> lv2::Plugin<'h> for Amp {
-    fn new(_sample_rate: f64, _bundle_path: &str) -> Self {
-        Amp {}
+    fn new(_sample_rate: f64, _bundle_path: &str, _features: lv2::FeatureList<'h>) -> Option<Self> {
+        Some(Amp {})
     }
 
     fn run(&mut self, ports: &mut Self::Ports, sample_count: usize) {

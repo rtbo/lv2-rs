@@ -19,7 +19,7 @@ pub struct LV2_Descriptor {
     pub instantiate:    Option<extern fn (descriptor: *const LV2_Descriptor,
                                           sample_rate: f64,
                                           bundle_path: *const c_char,
-                                          features: *const LV2_Feature) -> LV2_Handle>,
+                                          features: *const *const LV2_Feature) -> LV2_Handle>,
 
     pub connect_port:   Option<extern fn (instance: LV2_Handle,
                                           port: u32,
