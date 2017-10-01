@@ -7,6 +7,7 @@ extern crate lv2_derive;
 #[cfg(feature = "atom")]
 pub mod atom;
 pub mod core;
+pub mod log;
 pub mod midi;
 pub mod urid;
 
