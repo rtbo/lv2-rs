@@ -25,7 +25,7 @@ impl<'h> Feature<'h> for Map<'h>
     fn uri() -> &'static str {
         inst::MAP
     }
-    unsafe fn from_raw(raw: RawFeature<'h>) -> Self {
+    unsafe fn from_raw(raw: &RawFeature<'h>) -> Self {
         debug_assert!(raw.uri() == Self::uri());
         Map {
             raw: mem::transmute((*raw.raw).data),
@@ -57,7 +57,7 @@ impl<'h> Feature<'h> for Unmap<'h>
     fn uri() -> &'static str {
         inst::UNMAP
     }
-    unsafe fn from_raw(raw: RawFeature<'h>) -> Self {
+    unsafe fn from_raw(raw: &RawFeature<'h>) -> Self {
         debug_assert!(raw.uri() == Self::uri());
         Unmap {
             raw: mem::transmute(raw.raw),

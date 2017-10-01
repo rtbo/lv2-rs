@@ -32,7 +32,7 @@ where
 pub trait Feature<'h>
 {
     fn uri() -> &'static str;
-    unsafe fn from_raw(raw: RawFeature<'h>) -> Self;
+    unsafe fn from_raw(raw: &RawFeature<'h>) -> Self;
 }
 
 pub struct RawFeature<'h> {
