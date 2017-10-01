@@ -2,6 +2,7 @@
 #[macro_use]
 extern crate lv2;
 
+use lv2::log;
 use lv2::midi;
 use lv2::urid::{self, URID};
 
@@ -127,29 +128,32 @@ mod ports {
 impl<'h> lv2::Plugin<'h> for Synth {
 
     fn new(sample_rate: f64, _bundle_path: &str, features: lv2::FeatureList<'h>) -> Option<Self> {
-        let mut me = 0;
-        for f in features {
-            if f.uri() == <urid::Map as lv2::Feature<'h>>::uri() {
-                let map = unsafe {
-                    <urid::Map as lv2::Feature<'h>>::from_raw(f)
+
+        lv2_features_query!(features, (log <= log::Log), (map <= urid::Map));
+
+        match map {
+            Some(ref map) => {
+                if let Some(ref log) = log {
+                    let logger = log::Logger::new_with_map(log, map);
+                    lv2_log!(@note, logger, "will instantiate Sine Synth");
+                }
+                let mut synth = Synth {
+                    sample_rate: sample_rate,
+                    midi_event: map.map(midi::class::MIDIEVENT),
+                    voices: [None; 32],
+                    pulses: [0_f64; 128],
                 };
-                me = map.map(midi::class::MIDIEVENT);
+                for key in 0..128 {
+                    synth.pulses[key] = key_pulse(key as u8, sample_rate);
+                }
+                Some(synth)
+            },
+            None => {
+                if let Some(ref log) = log {
+                    log.println(0, format!("can't instanciate Sine Synth"));
+                }
+                None
             }
-        }
-        if me > 0 {
-            let mut synth = Synth {
-                sample_rate: sample_rate,
-                midi_event: me,
-                voices: [None; 32],
-                pulses: [0_f64; 128],
-            };
-            for key in 0..128 {
-                synth.pulses[key] = key_pulse(key as u8, sample_rate);
-            }
-            Some(synth)
-        }
-        else {
-            None
         }
     }
 

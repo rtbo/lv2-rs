@@ -91,3 +91,22 @@ macro_rules! lv2_ports {
 
     }
 }
+
+#[macro_export]
+macro_rules! lv2_features_query {
+    ($list:expr, $( ($name:ident <= $Feat:ty) ),+ ) => {
+        let ($($name),+) = {
+            $(let mut $name = None;)+
+            for f in $list {
+                $(
+                    if f.uri() == <$Feat as $crate::Feature>::uri() {
+                        $name = Some(unsafe {
+                            <$Feat as $crate::Feature>::from_raw(&f)
+                        });
+                    }
+                )+
+            }
+            ($($name),+)
+        };
+    };
+}
